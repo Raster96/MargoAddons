@@ -437,6 +437,9 @@
   'Tropiciel Herosów',
   'Wtajemniczony Tropiciel Herosów',
   'Doświadczony Tropiciel Herosów',
+  'Tropiciel Eventowych Herosów',
+  'Wtajemniczony Tropiciel Eventowych Herosów',
+  'Doświadczony Tropiciel Eventowych Herosów',
   'Piracka sakwa',
   'Duża piracka sakwa',
   'Zakopany piracki skarb'
