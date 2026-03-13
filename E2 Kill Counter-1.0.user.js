@@ -514,7 +514,7 @@
             if (items.unique) parts.push(`Unikaty: ${items.unique}`);
             if (items.heroic) parts.push(`Heroiki: ${items.heroic}`);
             if (items.legendary) parts.push(`Legendy: ${items.legendary}`);
-            return parts.length ? parts.join('<br>') : 'Brak dropów';
+            return parts.length ? parts.join('<br>') : 'Brak lootów';
         };
 
         const rows = [
