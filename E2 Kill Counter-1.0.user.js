@@ -58,6 +58,7 @@
     const getDefaultStats = () => ({
         today: { value: 0, date: getToday(), items: defaultItems() },
         yesterday: { value: 0, date: '', items: defaultItems() },
+        dailyRecord: { value: 0, date: '' },
         month: { value: 0, month: getCurrentMonth(), items: defaultItems() },
         prevMonth: { value: 0, month: '', items: defaultItems() },
         total: 0,
@@ -82,6 +83,7 @@
         ensureItems(stats.month);
         ensureItems(stats.prevMonth);
         if (!stats.totalItems) stats.totalItems = defaultItems();
+        if (!stats.dailyRecord) stats.dailyRecord = { value: 0, date: '' };
 
         const today = getToday();
         const currentMonth = getCurrentMonth();
@@ -131,6 +133,11 @@
                 stats.month.items[r] += itemCounts[r];
                 stats.totalItems[r] += itemCounts[r];
             }
+        }
+
+        if (stats.today.value > stats.dailyRecord.value) {
+            stats.dailyRecord.value = stats.today.value;
+            stats.dailyRecord.date = stats.today.date;
         }
 
         GM_setValue('e2Stats', stats);
@@ -520,6 +527,7 @@
         const rows = [
             { label: 'Dzisiaj', value: stats.today.value, cls: 'today', tip: formatItemTip(stats.today.items) },
             { label: 'Wczoraj', value: stats.yesterday.value, cls: 'yesterday', tip: formatItemTip(stats.yesterday.items) },
+            { label: 'Rekord dzienny', value: stats.dailyRecord.value, cls: 'today', tip: stats.dailyRecord.date ? `Data: ${stats.dailyRecord.date}` : 'Brak rekordu' },
             { separator: true },
             { label: 'Miesiąc', value: stats.month.value, cls: 'month', tip: formatItemTip(stats.month.items) },
             { label: 'Poprzedni miesiąc', value: stats.prevMonth.value, cls: 'prev-month', tip: formatItemTip(stats.prevMonth.items) },
