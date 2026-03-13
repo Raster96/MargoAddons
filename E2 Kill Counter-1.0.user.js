@@ -113,11 +113,16 @@
         if (typeof data.item !== 'object') return counts;
 
         for (const [, item] of Object.entries(data.item)) {
-            const rarity = item.parsedStats?.rarity || '';
+            if (!item.stat) continue;
+
+            const match = item.stat.match(/rarity=([^;]+)/);
+            const rarity = match ? match[1] : '';
+
             if (rarity === 'unique') counts.unique++;
             else if (rarity === 'heroic') counts.heroic++;
             else if (rarity === 'legendary') counts.legendary++;
         }
+
         return counts;
     };
 
