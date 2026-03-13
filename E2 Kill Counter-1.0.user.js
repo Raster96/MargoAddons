@@ -2,7 +2,7 @@
 // @name         E2 Kill Counter
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Liczy ubicia E2. Wyświetla statystyki dzienne, wczorajsze, miesięczne, z poprzedniego miesiąca i łączne.
+// @description  Liczy ubicia E2 i unikaty/heroiki/legendy. Wyświetla statystyki dzienne, wczorajsze, miesięczne, z poprzedniego miesiąca i łączne.
 // @author       You
 // @match        http*://*.margonem.pl/
 // @exclude      http*://www.margonem.pl/
@@ -53,13 +53,21 @@
     };
 
     // ==================== STATS ====================
+    const defaultItems = () => ({ unique: 0, heroic: 0, legendary: 0 });
+
     const getDefaultStats = () => ({
-        today: { value: 0, date: getToday() },
-        yesterday: { value: 0, date: '' },
-        month: { value: 0, month: getCurrentMonth() },
-        prevMonth: { value: 0, month: '' },
-        total: 0
+        today: { value: 0, date: getToday(), items: defaultItems() },
+        yesterday: { value: 0, date: '', items: defaultItems() },
+        month: { value: 0, month: getCurrentMonth(), items: defaultItems() },
+        prevMonth: { value: 0, month: '', items: defaultItems() },
+        total: 0,
+        totalItems: defaultItems()
     });
+
+    const ensureItems = (obj) => {
+        if (!obj.items) obj.items = defaultItems();
+        return obj;
+    };
 
     const loadStats = () => {
         let stats = GM_getValue('e2Stats', null);
@@ -69,19 +77,25 @@
             return stats;
         }
 
+        ensureItems(stats.today);
+        ensureItems(stats.yesterday);
+        ensureItems(stats.month);
+        ensureItems(stats.prevMonth);
+        if (!stats.totalItems) stats.totalItems = defaultItems();
+
         const today = getToday();
         const currentMonth = getCurrentMonth();
         let changed = false;
 
         if (stats.today.date !== today) {
-            stats.yesterday = { value: stats.today.value, date: stats.today.date };
-            stats.today = { value: 0, date: today };
+            stats.yesterday = { value: stats.today.value, date: stats.today.date, items: { ...stats.today.items } };
+            stats.today = { value: 0, date: today, items: defaultItems() };
             changed = true;
         }
 
         if (stats.month.month !== currentMonth) {
-            stats.prevMonth = { value: stats.month.value, month: stats.month.month };
-            stats.month = { value: 0, month: currentMonth };
+            stats.prevMonth = { value: stats.month.value, month: stats.month.month, items: { ...stats.month.items } };
+            stats.month = { value: 0, month: currentMonth, items: defaultItems() };
             changed = true;
         }
 
@@ -92,11 +106,33 @@
         return stats;
     };
 
-    const incrementKill = (count = 1) => {
+    const countItemRarities = (data) => {
+        const counts = defaultItems();
+        if (typeof data.item !== 'object') return counts;
+
+        for (const [, item] of Object.entries(data.item)) {
+            const rarity = item.parsedStats?.rarity || '';
+            if (rarity === 'unique') counts.unique++;
+            else if (rarity === 'heroic') counts.heroic++;
+            else if (rarity === 'legendary') counts.legendary++;
+        }
+        return counts;
+    };
+
+    const incrementKill = (count = 1, itemCounts = null) => {
         let stats = loadStats();
         stats.today.value += count;
         stats.month.value += count;
         stats.total += count;
+
+        if (itemCounts) {
+            for (const r of ['unique', 'heroic', 'legendary']) {
+                stats.today.items[r] += itemCounts[r];
+                stats.month.items[r] += itemCounts[r];
+                stats.totalItems[r] += itemCounts[r];
+            }
+        }
+
         GM_setValue('e2Stats', stats);
         return stats;
     };
@@ -150,7 +186,8 @@
                     );
 
                     if (won) {
-                        incrementKill(e2Count);
+                        const itemCounts = countItemRarities(data);
+                        incrementKill(e2Count, itemCounts);
                         updateCounterMenu();
                     }
                 }
@@ -471,14 +508,23 @@
 
         const stats = loadStats();
 
+        const formatItemTip = (items) => {
+            if (!items) return '';
+            const parts = [];
+            if (items.unique) parts.push(`Unikaty: ${items.unique}`);
+            if (items.heroic) parts.push(`Heroiki: ${items.heroic}`);
+            if (items.legendary) parts.push(`Legendy: ${items.legendary}`);
+            return parts.length ? parts.join('<br>') : 'Brak dropów';
+        };
+
         const rows = [
-            { label: 'Dzisiaj', value: stats.today.value, cls: 'today', tip: `Data: ${stats.today.date}` },
-            { label: 'Wczoraj', value: stats.yesterday.value, cls: 'yesterday', tip: stats.yesterday.date ? `Data: ${stats.yesterday.date}` : 'Brak danych' },
+            { label: 'Dzisiaj', value: stats.today.value, cls: 'today', tip: formatItemTip(stats.today.items) },
+            { label: 'Wczoraj', value: stats.yesterday.value, cls: 'yesterday', tip: formatItemTip(stats.yesterday.items) },
             { separator: true },
-            { label: 'Miesiąc', value: stats.month.value, cls: 'month', tip: `Miesiąc: ${stats.month.month}` },
-            { label: 'Poprzedni miesiąc', value: stats.prevMonth.value, cls: 'prev-month', tip: stats.prevMonth.month ? `Miesiąc: ${stats.prevMonth.month}` : 'Brak danych' },
+            { label: 'Miesiąc', value: stats.month.value, cls: 'month', tip: formatItemTip(stats.month.items) },
+            { label: 'Poprzedni miesiąc', value: stats.prevMonth.value, cls: 'prev-month', tip: formatItemTip(stats.prevMonth.items) },
             { separator: true },
-            { label: 'Wszystkie bicia', value: stats.total, cls: 'total', tip: 'Łączna liczba ubić E2' },
+            { label: 'Wszystkie bicia', value: stats.total, cls: 'total', tip: formatItemTip(stats.totalItems) },
         ];
 
         rows.forEach(row => {
