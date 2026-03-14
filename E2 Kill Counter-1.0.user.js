@@ -556,6 +556,10 @@
             if (items.legendary) parts.push(`Legendy: ${items.legendary}`);
             if (items.enhUni) parts.push(`<br>Ulepa uni: ${fmtNum(items.enhUni)}`);
             if (items.enhHero) parts.push(`Ulepa hero: ${fmtNum(items.enhHero)}`);
+
+            const totalEnh = (items.enhUni || 0) + (items.enhHero || 0);
+            if (totalEnh > 0) parts.push(`Suma ulepy: ${fmtNum(totalEnh)}`);
+
             return parts.length ? parts.join('<br>') : 'Brak lootów';
         };
 
