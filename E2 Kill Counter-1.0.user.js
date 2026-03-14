@@ -551,8 +551,8 @@
             if (items.unique) parts.push(`Unikaty: ${items.unique}`);
             if (items.heroic) parts.push(`Heroiki: ${items.heroic}`);
             if (items.legendary) parts.push(`Legendy: ${items.legendary}`);
-            if (items.enhUni) parts.push(`<br>Ulepa uni:<br>${fmtNum(items.enhUni)}`);
-            if (items.enhHero) parts.push(`Ulepa hero:<br>${fmtNum(items.enhHero)}`);
+            if (items.enhUni) parts.push(`<br>Ulepa uni: ${fmtNum(items.enhUni)}`);
+            if (items.enhHero) parts.push(`Ulepa hero: ${fmtNum(items.enhHero)}`);
             return parts.length ? parts.join('<br>') : 'Brak lootów';
         };
 
