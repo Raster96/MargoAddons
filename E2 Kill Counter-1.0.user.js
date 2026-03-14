@@ -2,7 +2,7 @@
 // @name         E2 Kill Counter
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Liczy ubicia E2 i unikaty/heroiki/legendy oraz ulepe za nie. Wyświetla statystyki dzienne, wczorajsze, miesięczne, z poprzedniego miesiąca i łączne.
+// @description  Liczy ubicia E2 i unikaty/heroiki/legendy. Wyświetla statystyki dzienne, wczorajsze, miesięczne, z poprzedniego miesiąca i łączne.
 // @author       You
 // @match        http*://*.margonem.pl/
 // @exclude      http*://www.margonem.pl/
@@ -113,11 +113,12 @@
         return stats;
     };
 
-    const countItemRarities = (data) => {
+    const countItemRarities = (data, lootItemIds) => {
         const counts = defaultItems();
         if (typeof data.item !== 'object') return counts;
 
-        for (const [, item] of Object.entries(data.item)) {
+        for (const [itemId, item] of Object.entries(data.item)) {
+            if (!lootItemIds.has(itemId)) continue;
             if (!item.stat) continue;
 
             const match = item.stat.match(/rarity=([^;]+)/);
@@ -160,9 +161,14 @@
         return fighter.npc === 1 && fighter.wt > 19 && fighter.wt < 29;
     };
 
-    const getItemIds = (data) => {
-        if (typeof data.item !== 'object') return '';
-        return Object.keys(data.item).sort().join(',');
+    const getLootItemIds = (data) => {
+        const ids = new Set();
+        if (data.loot && data.loot.source === 'fight' && typeof data.loot.states === 'object') {
+            for (const id of Object.keys(data.loot.states)) {
+                ids.add(id);
+            }
+        }
+        return ids;
     };
 
     const waitForGame = setInterval(() => {
@@ -203,18 +209,18 @@
                 const e2Count = Object.keys(currentFighters).length;
 
                 if (e2Count > 0 && Array.isArray(data.f.m)) {
-                    const itemIds = getItemIds(data);
-                    const lastItemIds = GM_getValue('e2LastItemIds', '');
+                    const lootItemIds = getLootItemIds(data);
+                    const lootKey = [...lootItemIds].sort().join(',');
+                    const lastLootKey = GM_getValue('e2LastItemIds', '');
 
-                    if (itemIds !== lastItemIds) {
-                        const heroName = Engine.hero.d.nick;
+                    if (lootKey && lootKey !== lastLootKey) {
                         const won = data.f.m.some(msg =>
-                            typeof msg === 'string' && msg.includes('winner=' + heroName)
+                            typeof msg === 'string' && msg.includes('0;0;winner=')
                         );
 
                         if (won) {
-                            if (itemIds) GM_setValue('e2LastItemIds', itemIds);
-                            const itemCounts = countItemRarities(data);
+                            GM_setValue('e2LastItemIds', lootKey);
+                            const itemCounts = countItemRarities(data, lootItemIds);
                             incrementKill(e2Count, itemCounts);
                             updateCounterMenu();
                         }
@@ -545,8 +551,8 @@
             if (items.unique) parts.push(`Unikaty: ${items.unique}`);
             if (items.heroic) parts.push(`Heroiki: ${items.heroic}`);
             if (items.legendary) parts.push(`Legendy: ${items.legendary}`);
-            if (items.enhUni) parts.push(`<br>Ulepa uni: ${fmtNum(items.enhUni)}`);
-            if (items.enhHero) parts.push(`Ulepa hero: ${fmtNum(items.enhHero)}`);
+            if (items.enhUni) parts.push(`<br>Ulepa uni:<br>${fmtNum(items.enhUni)}`);
+            if (items.enhHero) parts.push(`Ulepa hero:<br>${fmtNum(items.enhHero)}`);
             return parts.length ? parts.join('<br>') : 'Brak lootów';
         };
 
