@@ -210,17 +210,20 @@
 
                 if (e2Count > 0 && Array.isArray(data.f.m)) {
                     const lootItemIds = getLootItemIds(data);
-                    const lootKey = [...lootItemIds].sort().join(',');
-                    const lastLootKey = GM_getValue('e2LastItemIds', '');
+                    const hasLoot = lootItemIds.size > 0;
+                    const dedupKey = hasLoot
+                        ? [...lootItemIds].sort().join(',')
+                        : Object.keys(currentFighters).sort().join(',');
+                    const lastKey = GM_getValue('e2LastItemIds', '');
 
-                    if (lootKey && lootKey !== lastLootKey) {
+                    if (dedupKey !== lastKey) {
                         const won = data.f.m.some(msg =>
                             typeof msg === 'string' && msg.includes('0;0;winner=')
                         );
 
                         if (won) {
-                            GM_setValue('e2LastItemIds', lootKey);
-                            const itemCounts = countItemRarities(data, lootItemIds);
+                            GM_setValue('e2LastItemIds', dedupKey);
+                            const itemCounts = hasLoot ? countItemRarities(data, lootItemIds) : null;
                             incrementKill(e2Count, itemCounts);
                             updateCounterMenu();
                         }
