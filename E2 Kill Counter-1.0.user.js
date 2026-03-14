@@ -2,7 +2,7 @@
 // @name         E2 Kill Counter
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Liczy ubicia E2 i unikaty/heroiki/legendy. Wyświetla statystyki dzienne, wczorajsze, miesięczne, z poprzedniego miesiąca i łączne.
+// @description  Liczy ubicia E2 i unikaty/heroiki/legendy oraz ulepe za nie. Wyświetla statystyki dzienne, wczorajsze, miesięczne, z poprzedniego miesiąca i łączne.
 // @author       You
 // @match        http*://*.margonem.pl/
 // @exclude      http*://www.margonem.pl/
@@ -53,7 +53,7 @@
     };
 
     // ==================== STATS ====================
-    const defaultItems = () => ({ unique: 0, heroic: 0, legendary: 0 });
+    const defaultItems = () => ({ unique: 0, heroic: 0, legendary: 0, enhUni: 0, enhHero: 0 });
 
     const getDefaultStats = () => ({
         today: { value: 0, date: getToday(), items: defaultItems() },
@@ -67,6 +67,8 @@
 
     const ensureItems = (obj) => {
         if (!obj.items) obj.items = defaultItems();
+        if (obj.items.enhUni === undefined) obj.items.enhUni = 0;
+        if (obj.items.enhHero === undefined) obj.items.enhHero = 0;
         return obj;
     };
 
@@ -83,6 +85,8 @@
         ensureItems(stats.month);
         ensureItems(stats.prevMonth);
         if (!stats.totalItems) stats.totalItems = defaultItems();
+        if (stats.totalItems.enhUni === undefined) stats.totalItems.enhUni = 0;
+        if (stats.totalItems.enhHero === undefined) stats.totalItems.enhHero = 0;
         if (!stats.dailyRecord) stats.dailyRecord = { value: 0, date: '' };
 
         const today = getToday();
@@ -92,6 +96,7 @@
         if (stats.today.date !== today) {
             stats.yesterday = { value: stats.today.value, date: stats.today.date, items: { ...stats.today.items } };
             stats.today = { value: 0, date: today, items: defaultItems() };
+
             changed = true;
         }
 
@@ -117,9 +122,10 @@
 
             const match = item.stat.match(/rarity=([^;]+)/);
             const rarity = match ? match[1] : '';
+            const enh = item.enhancementPoints ? parseInt(item.enhancementPoints) || 0 : 0;
 
-            if (rarity === 'unique') counts.unique++;
-            else if (rarity === 'heroic') counts.heroic++;
+            if (rarity === 'unique') { counts.unique++; counts.enhUni += enh; }
+            else if (rarity === 'heroic') { counts.heroic++; counts.enhHero += enh; }
             else if (rarity === 'legendary') counts.legendary++;
         }
 
@@ -133,7 +139,7 @@
         stats.total += count;
 
         if (itemCounts) {
-            for (const r of ['unique', 'heroic', 'legendary']) {
+            for (const r of ['unique', 'heroic', 'legendary', 'enhUni', 'enhHero']) {
                 stats.today.items[r] += itemCounts[r];
                 stats.month.items[r] += itemCounts[r];
                 stats.totalItems[r] += itemCounts[r];
@@ -152,6 +158,11 @@
     // ==================== FIGHT DETECTION ====================
     const isE2 = (fighter) => {
         return fighter.npc === 1 && fighter.wt > 19 && fighter.wt < 29;
+    };
+
+    const getItemIds = (data) => {
+        if (typeof data.item !== 'object') return '';
+        return Object.keys(data.item).sort().join(',');
     };
 
     const waitForGame = setInterval(() => {
@@ -192,15 +203,21 @@
                 const e2Count = Object.keys(currentFighters).length;
 
                 if (e2Count > 0 && Array.isArray(data.f.m)) {
-                    const heroName = Engine.hero.d.nick;
-                    const won = data.f.m.some(msg =>
-                        typeof msg === 'string' && msg.includes('winner=' + heroName)
-                    );
+                    const itemIds = getItemIds(data);
+                    const lastItemIds = GM_getValue('e2LastItemIds', '');
 
-                    if (won) {
-                        const itemCounts = countItemRarities(data);
-                        incrementKill(e2Count, itemCounts);
-                        updateCounterMenu();
+                    if (itemIds !== lastItemIds) {
+                        const heroName = Engine.hero.d.nick;
+                        const won = data.f.m.some(msg =>
+                            typeof msg === 'string' && msg.includes('winner=' + heroName)
+                        );
+
+                        if (won) {
+                            if (itemIds) GM_setValue('e2LastItemIds', itemIds);
+                            const itemCounts = countItemRarities(data);
+                            incrementKill(e2Count, itemCounts);
+                            updateCounterMenu();
+                        }
                     }
                 }
 
@@ -520,12 +537,16 @@
 
         const stats = loadStats();
 
+        const fmtNum = (n) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
         const formatItemTip = (items) => {
             if (!items) return '';
             const parts = [];
             if (items.unique) parts.push(`Unikaty: ${items.unique}`);
             if (items.heroic) parts.push(`Heroiki: ${items.heroic}`);
             if (items.legendary) parts.push(`Legendy: ${items.legendary}`);
+            if (items.enhUni) parts.push(`<br>Ulepa uni:<br>${fmtNum(items.enhUni)}`);
+            if (items.enhHero) parts.push(`Ulepa hero:<br>${fmtNum(items.enhHero)}`);
             return parts.length ? parts.join('<br>') : 'Brak lootów';
         };
 
