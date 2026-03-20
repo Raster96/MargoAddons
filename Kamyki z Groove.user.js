@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Kamyki z lootlogiem
+// @name         Kamyki z Groove
 // @namespace    http://tampermonkey.net/
 // @version      10.11.2024
 // @description  Przeróbka dodatku Priweejta, który dodaje grafiki do kamyków. Dodano wyświetlanie timerów z lootloga na teleportach.
