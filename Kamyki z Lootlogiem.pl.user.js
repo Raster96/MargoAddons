@@ -459,47 +459,47 @@ const STONES_MAP = {
     ],
     // TYTAN
     "Mroczna Pieczara p.0": [
-        "Dziewicza Orlica",
+        "Orlica",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/dziewicza_orlica.gif"
     ],
     "Grota Caerbannoga": [
-        "Zabójczy Królik",
+        "Królik",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/zabojczy_krolik.gif"
     ],
     "Bandyckie Chowisko": [
-        "Renegat Baulus",
+        "Renegat",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/renegat_baulus.gif"
     ],
     "Wulkan Politraki - przedsionek": [
-        "Piekielny Arcymag",
+        "Arcymag",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/archdemon.gif"
     ],
     "Lokum Złych Goblinów p.4": [
-        "Versus Zoons",
+        "Zoons",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/versus-zoons.gif"
     ],
     "Jaskinia Ulotnych Wspomnień": [
-        "Łowczyni Wspomnień",
+        "Łowczyni",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/lowcz-wspo-driady.gif"
     ],
     "Więzienie Demonów": [
-        "Przyzywacz Demonów",
+        "Przyzywacz",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/przyz_demon_sekta.gif"
     ],
     "Nora Jaszczurzych Koszmarów p.1 - sala 2": [
-        "Maddok Magua",
+        "Magua",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/maddok_magua-1b.gif"
     ],
     "Topan p.13": [
-        "Tezcatlipoca",
+        "Tezca",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/tezcatlipoca.gif"
     ],
     "Pustynia Shaiharrud - wschód": [
-        "Barbatos Smoczy Strażnik",
+        "Barba",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/hebrehoth_smokoludzie.gif"
     ],
     "Przejście Władców Mrozu": [
-        "Tanroth",
+        "Tanro",
         "https://micc.garmory-cdn.cloud/obrazki/npc/tyt/ice_king.gif"
     ],
     // KOLOS
