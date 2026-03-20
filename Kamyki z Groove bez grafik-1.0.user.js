@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Kamyki z lootlogiem
+// @name         Kamyki z Groove
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Wyświetla timer z lootloga na teleportach. Bez grafiki.
