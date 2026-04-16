@@ -187,7 +187,7 @@
     const origParseJSON = Engine.communication.parseJSON.bind(Engine.communication);
     Engine.communication.parseJSON = function (data) {
       if (data && data.socket && data.socket.composePreviewRecipes) {
-        setTimeout(highlightRecipeWindow, 300);
+        highlightRecipeWindow();
       }
       return origParseJSON(data);
     };
