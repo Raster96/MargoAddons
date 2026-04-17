@@ -32,7 +32,7 @@ const SHOW_GRAPHICS_ON_USE_TELEPORTS = 0;
 const STONES_MAP = {
     // INNE
     "Błota Sham Al": [
-        "Viviana Nandin",
+        "Viviana",
         "https://micc.garmory-cdn.cloud/obrazki/npc/her/viv_nandin_i3bd1.gif"
     ],
     "Latarniane Wybrzeże": [
@@ -48,11 +48,11 @@ const STONES_MAP = {
         "https://micc.garmory-cdn.cloud/obrazki/npc/mez/tuz31.gif"
     ],
     "Osada Czerwonych Orków": [
-        "Obłąkany Łowca orków",
+        "Obło",
         "https://micc.garmory-cdn.cloud/obrazki/npc/her/oblakany_ac1dae9d.gif"
     ],
     "Wyjący Wąwóz": [
-        "Baca bez Łowiec",
+        "Baca",
         "https://micc.garmory-cdn.cloud/obrazki/npc/her/baca-bez-lowiec.gif"
     ],
     "Gvar Hamryd": [
@@ -60,7 +60,7 @@ const STONES_MAP = {
         "https://micc.garmory-cdn.cloud/obrazki/npc/hum/m_hamadriada-5b.gif"
     ],
     "Kryształowa Grota p.6": [
-        "Lichwiarz Grauhaz",
+        "Lichwiarz",
         "https://micc.garmory-cdn.cloud/obrazki/npc/her/lichwiarz_grauhaz.gif"
     ],
     // E2
@@ -149,7 +149,7 @@ const STONES_MAP = {
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/magaz_zbrojmistrz.gif"
     ],
     "Wylęgarnia Choukkerów p.3": [
-        "Choukker (p.3)",
+        "Choukker (p3)",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/dlawiciel5.gif"
     ],
     "Kopalnia Margorii": [
@@ -201,7 +201,7 @@ const STONES_MAP = {
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/blotniaki_milosnik_lowcow.gif"
     ],
     "Skalne Cmentarzysko p.4": [
-        "Łowca Czaszek (p.3)",
+        "Łowca Czaszek",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/alghul-czaszka-1a.gif"
     ],
     "Piramida Pustynnego Władcy p.3": [
