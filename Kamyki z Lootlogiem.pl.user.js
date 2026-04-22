@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Kamyki z Lootlogiem.pl
 // @namespace    http://tampermonkey.net/
-// @version      10.11.2024
+// @version      2024.04.22
 // @description  Przeróbka dodatku Priweejta, który dodaje grafiki do kamyków. Dodano wyświetlanie timerów z lootlog.pl na teleportach.
-// @author       You (edycja oryginalnego kodu autorstwa Priweejt)
+// @author       You (edycja oryginalnego kodu autorstwa Priweejt) - zaktualizowane do Lootlog Public API v1
 // @match        http*://*.margonem.pl/
 // @exclude      http*://www.margonem.pl/
 // @grant        none
@@ -554,15 +554,21 @@ const STONES_MAP = {
 };
 
 function fetchLootlogTimers() {
-    const cacheData = localStorage.getItem('ll:query-cache');
-    if (!cacheData) return [];
+    const api = window.lootlogGameClientApi;
+    
+    if (!api || !api.ready) {
+        return [];
+    }
+
+    const currentWorld = Engine?.worldConfig?.getWorldName?.();
+    
+    if (!currentWorld) {
+        return [];
+    }
 
     try {
-        const cache = JSON.parse(cacheData);
-        const timerQueries = cache.clientState?.queries?.filter(q =>
-            q.queryKey?.[0] === 'guild-timers'
-        ) || [];
-        return timerQueries.flatMap(query => query.state?.data || []);
+        const timers = api.getTimers({ world: currentWorld });
+        return timers || [];
     } catch (e) {
         return [];
     }
@@ -643,7 +649,7 @@ async function appendItemOverlay(id, url) {
     }
 }
 
-const drawStonesLabels = () => {
+const updateTimerLabels = () => {
     const dragonStones = fetchDragonStones();
     const allTimers = fetchLootlogTimers();
 
@@ -651,8 +657,7 @@ const drawStonesLabels = () => {
         const mapName = getMapName(stone._cachedStats);
 
         if (STONES_MAP.hasOwnProperty(mapName)) {
-            const [monsterName, imageUrl] = STONES_MAP[mapName];
-
+            const [monsterName] = STONES_MAP[mapName];
             const monsterNameLower = monsterName.toLowerCase();
             const timer = allTimers.find(t =>
                 t.npc && t.npc.name.toLowerCase() === monsterNameLower
@@ -674,6 +679,18 @@ const drawStonesLabels = () => {
             } else {
                 existingLabel.remove();
             }
+        }
+    });
+};
+
+const drawStonesLabels = () => {
+    const dragonStones = fetchDragonStones();
+
+    dragonStones.forEach((stone) => {
+        const mapName = getMapName(stone._cachedStats);
+
+        if (STONES_MAP.hasOwnProperty(mapName)) {
+            const [, imageUrl] = STONES_MAP[mapName];
 
             const shouldShowGraphic = SHOW_GRAPHICS === 1 && imageUrl &&
                 (SHOW_GRAPHICS_ON_USE_TELEPORTS === 1 || stone._cachedStats.hasOwnProperty("timelimit"));
@@ -683,6 +700,8 @@ const drawStonesLabels = () => {
             }
         }
     });
+    
+    updateTimerLabels();
 };
 
 const fetchDragonStones = () => {
@@ -728,6 +747,50 @@ const setupCSS = () => {
 };
 
 (function () {
+    let isLootlogApiReady = false;
+    let updateInterval = null;
+    let timerSubscription = null;
+
+    const startUpdating = () => {
+        if (updateInterval) return;
+        
+        setupCSS();
+        drawStonesLabels();
+        updateInterval = setInterval(updateTimerLabels, 1000);
+        
+        const api = window.lootlogGameClientApi;
+        if (api && !timerSubscription) {
+            timerSubscription = api.subscribe('timers:changed', ({ world }) => {
+                const currentWorld = Engine?.worldConfig?.getWorldName?.();
+                if (world === currentWorld) {
+                    drawStonesLabels();
+                }
+            });
+        }
+    };
+
+    const checkLootlogApi = () => {
+        const api = window.lootlogGameClientApi;
+        
+        if (!api) {
+            return false;
+        }
+
+        if (api.ready) {
+            if (!isLootlogApiReady) {
+                isLootlogApiReady = true;
+                startUpdating();
+            }
+            return true;
+        } else {
+            api.subscribe('ready', () => {
+                isLootlogApiReady = true;
+                startUpdating();
+            });
+            return false;
+        }
+    };
+
     const init = () => {
         try {
             if (!Engine.interface.getAlreadyInitialised()) {
@@ -736,11 +799,25 @@ const setupCSS = () => {
             }
         } catch (error) {
             setTimeout(init, 500);
+            return;
         }
 
-        setupCSS();
-        drawStonesLabels();
-        setInterval(drawStonesLabels, 1000);
+        if (!checkLootlogApi()) {
+            let attempts = 0;
+            const maxAttempts = 30;
+            
+            const apiCheckInterval = setInterval(() => {
+                attempts++;
+                
+                if (checkLootlogApi() || attempts >= maxAttempts) {
+                    clearInterval(apiCheckInterval);
+                    
+                    if (attempts >= maxAttempts && !isLootlogApiReady) {
+                        console.warn('[Kamyki z Lootlogiem] Lootlog API niedostępne - upewnij się, że Lootlog Game Client jest zainstalowany i uruchomiony');
+                    }
+                }
+            }, 500);
+        }
     };
 
     init();
