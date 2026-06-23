@@ -2,7 +2,7 @@
 // @name         Kamyki z Lootlogiem.pl
 // @namespace    http://tampermonkey.net/
 // @version      2024.04.22
-// @description  Przeróbka dodatku Priweejta, który dodaje grafiki do kamyków. Dodano wyświetlanie timerów z lootlog.pl na teleportach.
+// @description  Przeróbka dodatku Priweejta, który dodaje grafiki do kamyków. Dodano wyświetlanie timerów z lootlog.pl na teleportach. ZAKTUALIZOWANO do nowego API Lootlog!
 // @author       You (edycja oryginalnego kodu autorstwa Priweejt) - zaktualizowane do Lootlog Public API v1
 // @match        http*://*.margonem.pl/
 // @exclude      http*://www.margonem.pl/
@@ -17,7 +17,7 @@
 // ====== TRYB TIMERA ======
 // mode 1 - odlicza do średniego czasu (środek min/max respu, identycznie jak było na Groove), potem wyświetla 0:00 aż do maksymalnego czasu respu i znika
 // mode 2 - odlicza do maksymalnego czasu respu, potem znika
-const TIMER_MODE = 2;
+const TIMER_MODE = 1;
 
 // ====== GRAFIKI ======
 // 0 - wyłączone (bez zmniejszania grafiki itema i bez dodawania grafiki e2)
@@ -385,10 +385,19 @@ const STONES_MAP = {
         "Arytodam Olbrzymi",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/arytodam_olbrzymi-1b.gif"
     ],
+    "Krzaczasta Grota - sala główna": [
+        "Silvanasus",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/silvanasus.gif"
+    ],
+    "Nocna Pustelnia p.2": [
+        "Luna",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/elgary_luna-1b.gif"
+    ],
     "Gardziel Podgnitych Mchów p.3": [
         "Fangaj",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/grzyb-humanoid-1b.gif"
     ],
+
     "Jaskinia Korzennego Czaru p.1 - sala 1": [
         "Dendroculus",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/dendroculus.gif"
@@ -417,11 +426,19 @@ const STONES_MAP = {
         "Quetzalcoatl",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/quetzalcoatl.gif"
     ],
-    "Katakumby Gwałtownej Śmierci": [
+    "Krater Uwięzienia": [
+        "Wysłannik Tellarów",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/wyslannik_tellarow-1a.gif"
+    ],
+    "Szepczące Wyrwy p.3": [
+        "Fovos",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/fovos-1.gif"
+    ],
+    "Pustynne Katakumby - Komnata Gwałtownej Śmierci": [
         "Chopesz",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/chopesh2.gif"
     ],
-    "Grobowiec Seta": [
+    "Pustynne Katakumby - Grobowiec Seta": [
         "Neferkar Set",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/szkiel_set.gif"
     ],
@@ -432,6 +449,10 @@ const STONES_MAP = {
     "Jaskinia Smoczej Paszczy p.2": [
         "Terrozaur (jaskinia)",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/terrorzaur_pus.gif"
+    ],
+    "Źródło Narumi": [
+        "Mazurnik Przybrzeżny",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/mazurnik_przybrzezny-1a.gif"
     ],
     "Świątynia Hebrehotha - sala ofiary": [
         "Vaenra Charkhaam",
@@ -543,7 +564,7 @@ const STONES_MAP = {
         "Reuzen",
         "https://micc.garmory-cdn.cloud/obrazki/npc/kol/kolos-dendro.gif"
     ],
-    "Katakumby Krwawych Wypraw": [
+    "Pustynne Katakumby - Komnata Krwawych Wypraw": [
         "Wernoradzki Drakolisz",
         "https://micc.garmory-cdn.cloud/obrazki/npc/kol/kolos-drakolisz.gif"
     ],
@@ -555,13 +576,13 @@ const STONES_MAP = {
 
 function fetchLootlogTimers() {
     const api = window.lootlogGameClientApi;
-    
+
     if (!api || !api.ready) {
         return [];
     }
 
     const currentWorld = Engine?.worldConfig?.getWorldName?.();
-    
+
     if (!currentWorld) {
         return [];
     }
@@ -700,7 +721,7 @@ const drawStonesLabels = () => {
             }
         }
     });
-    
+
     updateTimerLabels();
 };
 
@@ -753,11 +774,11 @@ const setupCSS = () => {
 
     const startUpdating = () => {
         if (updateInterval) return;
-        
+
         setupCSS();
         drawStonesLabels();
         updateInterval = setInterval(updateTimerLabels, 1000);
-        
+
         const api = window.lootlogGameClientApi;
         if (api && !timerSubscription) {
             timerSubscription = api.subscribe('timers:changed', ({ world }) => {
@@ -771,7 +792,7 @@ const setupCSS = () => {
 
     const checkLootlogApi = () => {
         const api = window.lootlogGameClientApi;
-        
+
         if (!api) {
             return false;
         }
@@ -805,13 +826,13 @@ const setupCSS = () => {
         if (!checkLootlogApi()) {
             let attempts = 0;
             const maxAttempts = 30;
-            
+
             const apiCheckInterval = setInterval(() => {
                 attempts++;
-                
+
                 if (checkLootlogApi() || attempts >= maxAttempts) {
                     clearInterval(apiCheckInterval);
-                    
+
                     if (attempts >= maxAttempts && !isLootlogApiReady) {
                         console.warn('[Kamyki z Lootlogiem] Lootlog API niedostępne - upewnij się, że Lootlog Game Client jest zainstalowany i uruchomiony');
                     }
