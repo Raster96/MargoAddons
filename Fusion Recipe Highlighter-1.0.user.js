@@ -78,15 +78,18 @@
 
     let currentFilter = 'show-all';
 
-    function getBagTplSet() {
-      const tplSet = new Set();
+    function getBagTplMap() {
+      const tplMap = new Map();
       try {
         const bagItems = Engine.items.fetchLocationItems('g');
         for (const item of bagItems) {
-          if (item && item.tpl) tplSet.add(String(item.tpl));
+          if (item && item.tpl) {
+            const tplKey = String(item.tpl);
+            tplMap.set(tplKey, (tplMap.get(tplKey) || 0) + 1);
+          }
         }
       } catch (e) {}
-      return tplSet;
+      return tplMap;
     }
 
     function getItemIdFromElement(el) {
@@ -143,7 +146,7 @@
     }
 
     function highlightRecipeWindow() {
-      const bagTpls = getBagTplSet();
+      const bagTpls = getBagTplMap();
 
       let attempts = 0;
       const tryHighlight = () => {
@@ -158,14 +161,32 @@
 
         rows.forEach((row) => {
           const leftEls = row.querySelectorAll('.left-items > .item');
+
+          const requiredCounts = new Map();
+          leftEls.forEach((el) => {
+            const id = getItemIdFromElement(el);
+            if (id !== null) {
+              requiredCounts.set(id, (requiredCounts.get(id) || 0) + 1);
+            }
+          });
+
+          const availableTpls = new Map(bagTpls);
+
           let haveCount = 0;
           leftEls.forEach((el) => {
             const id = getItemIdFromElement(el);
             if (id === null) return;
+
             el.classList.remove('fhl-have', 'fhl-missing');
-            const inBag = bagTpls.has(id);
-            el.classList.add(inBag ? 'fhl-have' : 'fhl-missing');
-            if (inBag) haveCount++;
+
+            const available = availableTpls.get(id) || 0;
+            if (available > 0) {
+              el.classList.add('fhl-have');
+              availableTpls.set(id, available - 1);
+              haveCount++;
+            } else {
+              el.classList.add('fhl-missing');
+            }
           });
 
           row.dataset.fhlHave  = haveCount;
