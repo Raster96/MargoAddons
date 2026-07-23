@@ -13,9 +13,15 @@
     'use strict';
 
     GM_addStyle(`
-        /* Naprawienie szpary na górze i dole notyfikatora wokół okna łupów */
+        /* ni: LegendaryNotificator */
         body.ln-active.ln-frame-loot-active .loot-wnd:has([data-item-type=t-leg]).border-window::before,
         body.ln-active.ln-frame-loot-active .loot-wnd:has([data-item-type=t-leg]).border-window::after {
+            top: -33px !important;
+            height: calc(100% + 65px) !important;
+        }
+
+        /* maddonz: i-am-legend */
+        .i-am-legend__loot-window.border-window:before {
             top: -33px !important;
             height: calc(100% + 65px) !important;
         }
