@@ -17,7 +17,7 @@
 // ====== TRYB TIMERA ======
 // mode 1 - odlicza do średniego czasu (środek min/max respu, identycznie jak było na Groove), potem wyświetla 0:00 aż do maksymalnego czasu respu i znika
 // mode 2 - odlicza do maksymalnego czasu respu, potem znika
-const TIMER_MODE = 1;
+const TIMER_MODE = 2;
 
 // ====== GRAFIKI ======
 // 0 - wyłączone (bez zmniejszania grafiki itema i bez dodawania grafiki e2)
@@ -148,6 +148,10 @@ const STONES_MAP = {
         "Podły Zbrojmistrz",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/magaz_zbrojmistrz.gif"
     ],
+    "Wylęgarnia Choukkerów p.1": [
+        "Choukker (p3)",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/dlawiciel5.gif"
+    ],
     "Wylęgarnia Choukkerów p.3": [
         "Choukker (p3)",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/dlawiciel5.gif"
@@ -171,6 +175,10 @@ const STONES_MAP = {
     "Kamienna Strażnica - Sala Chwały": [
         "Goplana",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/goplana.gif"
+    ],
+    "Zagrzybiałe Ścieżki p.2": [
+        "Gnom Figlid",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/gnom_figlid.gif"
     ],
     "Zagrzybiałe Ścieżki p.3": [
         "Gnom Figlid",
@@ -211,6 +219,10 @@ const STONES_MAP = {
     "Jama Morskiej Macki p.1 - sala 3": [
         "Morski Potwór",
         "https://micc.garmory-cdn.cloud/obrazki/npc/e2/osmiornica-1b.gif"
+    ],
+    "Twierdza Rogogłowych - Sala Byka": [
+        "Borgoros Garamir III",
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/ingotia_minotaur-7a.gif"
     ],
     "Góralskie Przejście": [
         "Wójt Fistuła",
@@ -440,7 +452,7 @@ const STONES_MAP = {
     ],
     "Pustynne Katakumby - Grobowiec Seta": [
         "Neferkar Set",
-        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/szkiel_set.gif"
+        "https://micc.garmory-cdn.cloud/obrazki/npc/e2/neferkar_set-1a.gif"
     ],
     "Urwisko Vapora": [
         "Terrozaur (urwisko)",
