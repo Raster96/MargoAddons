@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zapraszanie pod "V" na NI (losowanie)
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.6
 // @description  Edycja dodatku autorstwa Arhq — zaprasza jedną losową osobę po wciśnięciu "V" i zmienia kolor nicku do momentu zaakceptowania zaproszenia.
 // @author       You
 // @match        http*://*.margonem.pl/
@@ -25,12 +25,12 @@
                 const [id] = remainingList[Math.floor(Math.random() * remainingList.length)];
 
                 _g(`party&a=inv&id=${id}`, (data) => {
-                    if (data.message) {
+                    if (data.message && data.e === "ok" && data.party && !data.party.members[id]) {
                         const element = document.querySelector(`div[data-id="${id}"] .center`);
                         if (element) {
                             element.style.color = "rgb(255, 0, 0)";
                         }
-                    } else {
+                    } else if (!data.message || data.e !== "ok") {
                         const updatedList = remainingList.filter(([otherId]) => otherId !== id);
                         tryInvite(updatedList);
                     }
