@@ -380,7 +380,7 @@
       lock = window?.Engine?.lock;
     }
 
-    window?.$?.(element)?.draggable({
+    window?.$?.(element)?.pointerDraggable({
       start() {
         lock.add('heroes-discord-drag');
       },
