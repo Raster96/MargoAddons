@@ -19,6 +19,11 @@
 // mode 2 - odlicza do maksymalnego czasu respu, potem znika
 const TIMER_MODE = 2;
 
+// ====== POKAZYWANIE OBECNOŚCI GRACZY NA MAPIE ======
+// 0 - wyłączone
+// 1 - włączone (pokazuje zieloną ikonkę ludzika na ikonie kamyka w lewym górnym rogu, jeśli ktoś z Lootloga jest na mapie z KCS lub z e2 na której jest aktywny timer)
+const SHOW_MAP_PRESENCE = 1;
+
 // ====== GRAFIKI ======
 // 0 - wyłączone (bez zmniejszania grafiki itema i bez dodawania grafiki e2)
 // 1 - domyślnie włączone (zmniejsza grafikę itema i dodaje grafikę e2)
@@ -682,6 +687,133 @@ async function appendItemOverlay(id, url) {
     }
 }
 
+const PRESENCE_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+
+const guildOccupiedMaps = new Map();
+let presenceTrackedWorld = null;
+
+const getSelfPlayerInfo = () => {
+    let nick = null;
+    let charId = null;
+    let accountId = null;
+
+    if (typeof Engine !== "undefined" && Engine.hero) {
+        nick = Engine.hero.d?.nick || Engine.hero.nick || null;
+        charId = Engine.hero.d?.id || Engine.hero.id || null;
+        accountId = Engine.hero.d?.account_id || Engine.hero.account_id || null;
+    } else if (typeof window !== "undefined" && window.hero) {
+        nick = window.hero.nick || null;
+        charId = window.hero.id || null;
+        accountId = window.hero.account_id || null;
+    }
+
+    return {
+        nick: nick ? String(nick).trim().toLowerCase() : null,
+        charId: charId ? String(charId) : null,
+        accountId: accountId ? String(accountId) : null
+    };
+};
+
+const parseOccupiedMapsFromPlayers = (playersRecord) => {
+    const maps = new Set();
+    if (!playersRecord || typeof playersRecord !== "object") return maps;
+
+    const self = getSelfPlayerInfo();
+
+    for (const userPresences of Object.values(playersRecord)) {
+        if (!Array.isArray(userPresences)) continue;
+        for (const presence of userPresences) {
+            if (presence.status === "offline") continue;
+            if (presence.platform && presence.platform !== "game") continue;
+
+            if (presence.player) {
+                const pName = presence.player.name ? String(presence.player.name).trim().toLowerCase() : null;
+                const pCharId = presence.player.characterId ? String(presence.player.characterId) : null;
+                const pAccId = presence.player.accountId ? String(presence.player.accountId) : null;
+
+                if (self.nick && pName && self.nick === pName) continue;
+                if (self.charId && pCharId && self.charId === pCharId) continue;
+                if (self.accountId && pAccId && self.accountId === pAccId && self.nick && pName && self.nick === pName) continue;
+            }
+
+            const map = presence.mapName || presence.player?.location?.map;
+            if (map && typeof map === "string" && map.trim().length > 0) {
+                maps.add(map.trim().toLowerCase());
+            }
+        }
+    }
+    return maps;
+};
+
+const isAnyPlayerOnMap = (mapName) => {
+    if (!mapName || typeof mapName !== "string") return false;
+    const normalized = mapName.trim().toLowerCase();
+    for (const mapSet of guildOccupiedMaps.values()) {
+        if (mapSet.has(normalized)) return true;
+    }
+    return false;
+};
+
+const isStoneMapOccupied = (mapName, timer) => {
+    if (!SHOW_MAP_PRESENCE) return false;
+    if (mapName && isAnyPlayerOnMap(mapName)) return true;
+    const location = timer?.npc?.location;
+    if (location && typeof location === "string" && isAnyPlayerOnMap(location)) {
+        return true;
+    }
+    return false;
+};
+
+const getActiveGuildIds = () => {
+    const api = window.lootlogGameClientApi;
+    if (!api) return [];
+    const ids = new Set();
+
+    const guilds = api.getGuilds?.();
+    if (Array.isArray(guilds)) {
+        guilds.forEach((g) => { if (g && g.id) ids.add(g.id); });
+    }
+
+    const socketState = api.getSocketState?.();
+    if (Array.isArray(socketState?.joinedGuilds)) {
+        socketState.joinedGuilds.forEach((id) => { if (id) ids.add(id); });
+    }
+
+    return Array.from(ids);
+};
+
+const syncOnlinePresence = async () => {
+    if (!SHOW_MAP_PRESENCE) return;
+    const api = window.lootlogGameClientApi;
+    if (!api) return;
+
+    const currentWorld = Engine?.worldConfig?.getWorldName?.();
+    if (!currentWorld) return;
+
+    if (presenceTrackedWorld !== currentWorld) {
+        presenceTrackedWorld = currentWorld;
+        guildOccupiedMaps.clear();
+    }
+
+    const socketState = api.getSocketState?.();
+    if (!socketState?.connected || !socketState?.joined) return;
+
+    const guildIds = getActiveGuildIds();
+    for (const guildId of guildIds) {
+        try {
+            const res = await api.getOnlinePlayers({ guildId, world: currentWorld });
+            if (res && res.status === "success") {
+                guildOccupiedMaps.set(guildId, parseOccupiedMapsFromPlayers(res.players));
+            } else if (res && res.status === "forbidden") {
+                guildOccupiedMaps.delete(guildId);
+            }
+        } catch (e) {
+            // Ignorujemy błędy tymczasowej niedostępności gatewaya
+        }
+    }
+    updateTimerLabels();
+};
+
 const updateTimerLabels = () => {
     const dragonStones = fetchDragonStones();
     const allTimers = fetchLootlogTimers();
@@ -696,18 +828,33 @@ const updateTimerLabels = () => {
                 t.npc && t.npc.name.toLowerCase() === monsterNameLower
             );
 
+            const occupied = Boolean(SHOW_MAP_PRESENCE === 1 && isStoneMapOccupied(mapName, timer));
+
+            const $item = $(`.item-id-${stone.id}`);
+            const existingBadge = $item.find('.stone-presence-badge');
+            if (occupied) {
+                if (existingBadge.length === 0) {
+                    const badge = $(`<div class="stone-presence-badge" title="Ktoś z Lootloga jest na tej mapie">${PRESENCE_ICON_SVG}</div>`);
+                    $item.append(badge);
+                }
+            } else {
+                existingBadge.remove();
+            }
+
             let timeText = null;
             if (timer) {
                 timeText = getTimerText(timer, TIMER_MODE);
             }
 
-            const existingLabel = $(`.item-id-${stone.id} .stone-label`);
+            const existingLabel = $item.find('.stone-label');
             if (timeText !== null) {
                 if (existingLabel.length > 0) {
-                    existingLabel.text(timeText);
+                    if (existingLabel.text() !== timeText) {
+                        existingLabel.text(timeText);
+                    }
                 } else {
                     const label = $(`<div class="stone-label">${timeText}</div>`);
-                    $(`.item-id-${stone.id}`).append(label);
+                    $item.append(label);
                 }
             } else {
                 existingLabel.remove();
@@ -766,6 +913,21 @@ const setupCSS = () => {
       font-size: 0.55rem;
       z-Index: 1000;
   }
+  .stone-presence-badge {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 12px;
+      height: 12px;
+      z-index: 1001;
+      pointer-events: none;
+      filter: drop-shadow(0 0 1px black) drop-shadow(0 1px 2px black);
+  }
+  .stone-presence-badge svg {
+      width: 12px;
+      height: 12px;
+      display: block;
+  }
   .priw8-item-small-icon canvas.canvas-icon {
       width: 20px;
       height: 20px;
@@ -783,6 +945,10 @@ const setupCSS = () => {
     let isLootlogApiReady = false;
     let updateInterval = null;
     let timerSubscription = null;
+    let presenceSubscription = null;
+    let socketSubscription = null;
+    let guildsSubscription = null;
+    let presenceSyncInterval = null;
 
     const startUpdating = () => {
         if (updateInterval) return;
@@ -792,13 +958,50 @@ const setupCSS = () => {
         updateInterval = setInterval(updateTimerLabels, 1000);
 
         const api = window.lootlogGameClientApi;
-        if (api && !timerSubscription) {
-            timerSubscription = api.subscribe('timers:changed', ({ world }) => {
-                const currentWorld = Engine?.worldConfig?.getWorldName?.();
-                if (world === currentWorld) {
-                    drawStonesLabels();
+        if (api) {
+            if (!timerSubscription) {
+                timerSubscription = api.subscribe('timers:changed', ({ world }) => {
+                    const currentWorld = Engine?.worldConfig?.getWorldName?.();
+                    if (world === currentWorld) {
+                        drawStonesLabels();
+                    }
+                });
+            }
+
+            if (SHOW_MAP_PRESENCE) {
+                if (!presenceSubscription) {
+                    presenceSubscription = api.subscribe('online-players:changed', (event) => {
+                        const currentWorld = Engine?.worldConfig?.getWorldName?.();
+                        if (event.world === currentWorld) {
+                            if (event.status === "success") {
+                                guildOccupiedMaps.set(event.guildId, parseOccupiedMapsFromPlayers(event.players));
+                            } else {
+                                guildOccupiedMaps.delete(event.guildId);
+                            }
+                            updateTimerLabels();
+                        }
+                    });
                 }
-            });
+
+                if (!socketSubscription) {
+                    socketSubscription = api.subscribe('socket:state-changed', (state) => {
+                        if (state && state.connected && state.joined) {
+                            syncOnlinePresence();
+                        }
+                    });
+                }
+
+                if (!guildsSubscription) {
+                    guildsSubscription = api.subscribe('guilds:changed', () => {
+                        syncOnlinePresence();
+                    });
+                }
+
+                syncOnlinePresence();
+                if (!presenceSyncInterval) {
+                    presenceSyncInterval = setInterval(syncOnlinePresence, 30000);
+                }
+            }
         }
     };
 
