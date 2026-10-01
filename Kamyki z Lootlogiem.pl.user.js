@@ -674,16 +674,22 @@ function loadItemImage(url) {
 }
 
 async function appendItemOverlay(id, url) {
-    const $it = document.querySelector(`.item-id-${id}`);
-    if ($it && !$it.querySelector(".priw8-item-overlay")) {
-        if (SHOW_GRAPHICS === 1) {
-            $it.classList.add("priw8-item-small-icon");
+    // Znajdź WSZYSTKIE elementy z tym ID (oryginał + kopie w innych dodatkach jak Sortownik)
+    const $items = document.querySelectorAll(`.item-id-${id}`);
+
+    for (const $it of $items) {
+        if ($it && !$it.querySelector(".priw8-item-overlay")) {
+            if (SHOW_GRAPHICS === 1) {
+                $it.classList.add("priw8-item-small-icon");
+            }
+            const $newImg = await loadItemImage(url);
+            $newImg.style.position = "absolute";
+            $newImg.zIndex = 1;
+            const $canv = $it.querySelector("canvas");
+            if ($canv && $canv.parentElement) {
+                $canv.parentElement.appendChild($newImg);
+            }
         }
-        const $newImg = await loadItemImage(url);
-        $newImg.style.position = "absolute";
-        $newImg.zIndex = 1;
-        const $canv = $it.querySelector("canvas");
-        $canv.parentElement.appendChild($newImg);
     }
 }
 
@@ -830,35 +836,42 @@ const updateTimerLabels = () => {
 
             const occupied = Boolean(SHOW_MAP_PRESENCE === 1 && isStoneMapOccupied(mapName, timer));
 
-            const $item = $(`.item-id-${stone.id}`);
-            const existingBadge = $item.find('.stone-presence-badge');
-            if (occupied) {
-                if (existingBadge.length === 0) {
-                    const badge = $(`<div class="stone-presence-badge" title="Ktoś z Lootloga jest na tej mapie">${PRESENCE_ICON_SVG}</div>`);
-                    $item.append(badge);
-                }
-            } else {
-                existingBadge.remove();
-            }
-
             let timeText = null;
             if (timer) {
                 timeText = getTimerText(timer, TIMER_MODE);
             }
 
-            const existingLabel = $item.find('.stone-label');
-            if (timeText !== null) {
-                if (existingLabel.length > 0) {
-                    if (existingLabel.text() !== timeText) {
-                        existingLabel.text(timeText);
+            // Aktualizuj WSZYSTKIE kopie przedmiotu (oryginał + kopie w Sortowniku itp.)
+            const $items = $(`.item-id-${stone.id}`);
+            $items.each(function() {
+                const $item = $(this);
+
+                // Badge obecności graczy
+                const existingBadge = $item.find('.stone-presence-badge');
+                if (occupied) {
+                    if (existingBadge.length === 0) {
+                        const badge = $(`<div class="stone-presence-badge" title="Ktoś z Lootloga jest na tej mapie">${PRESENCE_ICON_SVG}</div>`);
+                        $item.append(badge);
                     }
                 } else {
-                    const label = $(`<div class="stone-label">${timeText}</div>`);
-                    $item.append(label);
+                    existingBadge.remove();
                 }
-            } else {
-                existingLabel.remove();
-            }
+
+                // Label z timerem
+                const existingLabel = $item.find('.stone-label');
+                if (timeText !== null) {
+                    if (existingLabel.length > 0) {
+                        if (existingLabel.text() !== timeText) {
+                            existingLabel.text(timeText);
+                        }
+                    } else {
+                        const label = $(`<div class="stone-label">${timeText}</div>`);
+                        $item.append(label);
+                    }
+                } else {
+                    existingLabel.remove();
+                }
+            });
         }
     });
 };
@@ -956,6 +969,60 @@ const setupCSS = () => {
         setupCSS();
         drawStonesLabels();
         updateInterval = setInterval(updateTimerLabels, 1000);
+
+        const observeNewItems = () => {
+            const observer = new MutationObserver((mutations) => {
+                const newItemIds = new Set();
+
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) {
+                            if (node.classList && node.classList.contains('item')) {
+                                const match = Array.from(node.classList).find(c => c.startsWith('item-id-'));
+                                if (match) {
+                                    const itemId = match.replace('item-id-', '');
+                                    newItemIds.add(itemId);
+                                }
+                            }
+                            if (node.querySelectorAll) {
+                                node.querySelectorAll('.item[class*="item-id-"]').forEach((itemEl) => {
+                                    const match = Array.from(itemEl.classList).find(c => c.startsWith('item-id-'));
+                                    if (match) {
+                                        const itemId = match.replace('item-id-', '');
+                                        newItemIds.add(itemId);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                });
+
+                if (newItemIds.size > 0) {
+                    const dragonStones = fetchDragonStones();
+                    newItemIds.forEach((itemId) => {
+                        const stone = dragonStones.find(s => String(s.id) === itemId);
+                        if (stone) {
+                            const mapName = getMapName(stone._cachedStats);
+                            if (STONES_MAP.hasOwnProperty(mapName)) {
+                                const [, imageUrl] = STONES_MAP[mapName];
+                                const shouldShowGraphic = SHOW_GRAPHICS === 1 && imageUrl &&
+                                    (SHOW_GRAPHICS_ON_USE_TELEPORTS === 1 || stone._cachedStats.hasOwnProperty("timelimit"));
+                                if (shouldShowGraphic) {
+                                    appendItemOverlay(stone.id, imageUrl);
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        };
+
+        observeNewItems();
 
         const api = window.lootlogGameClientApi;
         if (api) {
