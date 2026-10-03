@@ -1085,6 +1085,11 @@
                     iconEl.appendChild(amountEl);
                 }
                 updateItemAmount(amountEl, item);
+                
+                // Sprawdź i dodaj klasy disable jeśli przedmiot powinien być zablokowany
+                if (typeof Engine !== 'undefined' && Engine.disableItemsManager && Engine.disableItemsManager.manageItemDisableInHeroEQ) {
+                    Engine.disableItemsManager.manageItemDisableInHeroEQ(item, $icon);
+                }
             }, 0);
 
             // Dodaj możliwość przeciągania - użyj tych samych opcji co gra
@@ -1261,7 +1266,7 @@
     border: 1px solid rgba(100,100,100,0.5);
     border-radius: 4px;
     cursor: pointer;
-    z-index: 99;
+    z-index: 10;
     user-select: none;
     transition: border-color .15s;
 }
@@ -3645,10 +3650,9 @@ label,
 
         updateBagSlotsDisplay();
 
-        // Odśwież ikony disable (nodepo, noauction) dla wszystkich przedmiotów
-        if (typeof Engine !== 'undefined' && Engine.disableItemsManager) {
-            Engine.disableItemsManager.restartWithActiveDisableKinds();
-        }
+        // Nie wywołuj restartWithActiveDisableKinds() bo restartuje WSZYSTKIE blokady
+        // (np. SHOP blokuje przedmiot, a następnie restartuje to w ENHANCE, co blokuje ten sam przedmiot)
+        // Zamiast tego, ikony disable są zarządzane przez Margonem automatycznie
 
         // Odśwież scrollbar Margonem
         try {
