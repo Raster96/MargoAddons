@@ -1085,7 +1085,7 @@
                     iconEl.appendChild(amountEl);
                 }
                 updateItemAmount(amountEl, item);
-                
+
                 // Sprawdź i dodaj klasy disable jeśli przedmiot powinien być zablokowany
                 if (typeof Engine !== 'undefined' && Engine.disableItemsManager && Engine.disableItemsManager.manageItemDisableInHeroEQ) {
                     Engine.disableItemsManager.manageItemDisableInHeroEQ(item, $icon);
@@ -3524,7 +3524,28 @@ label,
                 // Wyklucz przedmioty założone (st > 0 oznacza że przedmiot jest założony)
                 if (item.st && item.st > 0) return false;
 
-                return matchesFilter(filter, item);
+                if (!matchesFilter(filter, item)) return false;
+
+                // Uwzględnij wyszukiwarkę
+                if (searchValue) {
+                    const name  = (item.name || '').toLowerCase();
+                    const stats = parseItemStats(item);
+                    const opis  = (stats.opis || '').toLowerCase();
+                    const customTeleport = (stats.custom_teleport || '').toLowerCase();
+                    const teleport = (stats.teleport || '').toLowerCase();
+                    const etiquette = (stats.etiquette || '').toLowerCase();
+
+                    // Proste wyszukiwanie po nazwie i opisach
+                    if (!name.includes(searchValue) &&
+                        !opis.includes(searchValue) &&
+                        !customTeleport.includes(searchValue) &&
+                        !teleport.includes(searchValue) &&
+                        !etiquette.includes(searchValue)) {
+                        return false;
+                    }
+                }
+
+                return true;
             }).length;
         } catch(e) { return 0; }
     }
