@@ -1673,6 +1673,19 @@
     min-width: 0;
 }
 .sort-search-input::placeholder { color: #555; }
+.sort-search-clear {
+    color: #888;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+    transition: color .2s;
+    user-select: none;
+}
+.sort-search-clear:hover {
+    color: #ccc;
+}
 .sort-bag-slots {
     color: #888;
     font-size: 11px;
@@ -2267,6 +2280,7 @@ input[type="number"] {
 .sort-op-btn,
 .sort-chip,
 .sort-settings-btn,
+.sort-search-clear,
 button,
 input[type="checkbox"],
 .sort-restore-btn,
@@ -2799,13 +2813,30 @@ label,
         searchInput.addEventListener('input', () => {
             searchValue = searchInput.value.trim().toLowerCase();
             refreshItems();
+            // Pokaż/ukryj przycisk X
+            clearButton.style.display = searchValue ? 'block' : 'none';
         });
+
+        // Przycisk X do czyszczenia wyszukiwarki
+        const clearButton = document.createElement('span');
+        clearButton.className = 'sort-search-clear';
+        clearButton.innerHTML = '×';
+        clearButton.style.display = 'none'; // Ukryj domyślnie
+        addTip(clearButton, 'Wyczyść wyszukiwanie');
+        clearButton.addEventListener('click', () => {
+            searchInput.value = '';
+            searchValue = '';
+            clearButton.style.display = 'none';
+            refreshItems();
+        });
+
         const bagSlots = document.createElement('span');
         bagSlots.className = 'sort-bag-slots';
         bagSlots.id = 'sort-bag-slots';
         bagSlots.textContent = '0m';
         searchWrap.appendChild(searchIcon);
         searchWrap.appendChild(searchInput);
+        searchWrap.appendChild(clearButton);
         searchWrap.appendChild(bagSlots);
 
         // Item list (inside scroll-wrapper > scroll-pane for Margonem-style overlay scrollbar)
