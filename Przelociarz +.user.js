@@ -18,17 +18,24 @@
 
     // ==================== OPCJE KONFIGURACYJNE ====================
     const config = {
-        addTimer: true, // domyślnie true, jak false to nie dodaje timerów na Minutnik + Priweejta (można wyłączyć, nie jest to wymagane do poprawnego działania addTeleportCounts)
+        addTimer: false, // domyślnie true, jak false to nie dodaje timerów na Minutnik + Priweejta (można wyłączyć, nie jest to wymagane do poprawnego działania addTeleportCounts)
         addTeleportCounts: true, // domyślnie true, jak false to nie dodaje i nie aktualizuje liczarki teleportów powyżej dodatku changeCharacter Priweejta (można wyłączyć, nie jest to wymagane do poprawnego działania addTimer)
 
         // dodatek domyślnie zapisuje wszystkie KCS oraz kamyki na stałe zawierające w opisie słowo "licytacja" - jeśli chcemy dodać lub usunąć jakiś kamyk trzeba to zrobić poniżej:
 
         // poniżej wpisujemy nazwy map, których NIE zapisujemy np. nazwy map z kamyków na kolosów/tytanów
         teleportBlacklist: [
-            "Mglisty Las",
+            "Katakumby Antycznego Gniewu - przedsionek",
+            "Czeluść Chimerycznej Natury - przedsionek",
+            "Dziki Zagajnik",
+            "Nora Jaszczurzych Koszmarów p.1 - sala 2",
+            "Radosna Polana",
+            "Zajazd pod Zielonym Jednorożcem p.1",
+            "Kwieciste Kresy",
+            "Strumienie Szemrzących Wód",
             "Latarniane Wybrzeże",
             'Pustynia Shaiharrud - wschód',
-            'Katakumby Krwawych Wypraw',
+            'Pustynne Katakumby - Komnata Krwawych Wypraw',
             'Przejście Władców Mrozu',
             'Topan p.13',
             'Gvar Hamryd',
@@ -54,6 +61,8 @@
             'Mroczna Pieczara p.0',
             'Pieczara Szaleńców - przedsionek',
             'Pradawne Wzgórze Przodków',
+            "Kryształowa Grota p.6",
+            "Potępione Zamczysko",
         ],
         // poniżej wpisujemy nazwy map dla innych kamyków, które zapisujemy nawet jeśli nie są KCS i nie zawierają słowa "licytacja" np. Sala Królewska
         teleportWhitelist: [
@@ -183,7 +192,7 @@ const extractMapName = (parsedStats) => {
         const parts = parsedStats.teleport.split(',')
         const mapa = parts[3] || null
         if (mapa && config.teleportWhitelist.includes(mapa)) return mapa
-        if (parsedStats.opis?.toLowerCase().includes('licytacja')) return mapa
+        if (parsedStats.rarity === 'unique') return mapa
     }
 
     return null
@@ -210,7 +219,13 @@ const addGargonemTimer = (mapa, timeMinutes) => {
 
 let updateTeleportCounts = null
 
-intercept(Engine.communication, 'parseJSON', (data) => {
+function initialize() {
+    if (typeof Engine.communication === 'undefined') {
+        setTimeout(initialize, 100);
+        return;
+    }
+
+    intercept(Engine.communication, 'parseJSON', (data) => {
     if (data.t === 'reload' && typeof data.item === 'object') {
         const guest = Engine.hero.d.guest
         if (guest !== 'undefined' && guest === '1') return
@@ -254,6 +269,17 @@ intercept(Engine.communication, 'parseJSON', (data) => {
         })
     }
 })
+}
+
+function run() {
+    if (typeof Engine === 'undefined' || Engine.getInitLvl() !== 4) {
+        setTimeout(run, 100);
+        return;
+    }
+    initialize();
+}
+
+run();
 
 if (config.addTeleportCounts) {
     (function initTeleportObserver() {
