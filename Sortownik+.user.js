@@ -65,6 +65,10 @@
                         return originalShowPopupMenu.call(this, menu, e, onMap);
                     }
 
+                    if (!e || !e.target) {
+                        return originalShowPopupMenu.call(this, menu, e, onMap);
+                    }
+
                     const itemElement = e.target.closest('.item');
                     const itemId = itemElement?.className.match(/item-id-(\d+)/)?.[1];
                     if (itemId) {
@@ -535,15 +539,6 @@
         }
     }
 
-    function logTranslationResults() {
-        console.log('[Sortownik] Translation Results:', {
-            success: translationResults.success,
-            failed: translationResults.failed,
-            successCount: Object.keys(translationResults.success).length,
-            failedCount: translationResults.failed.length
-        });
-    }
-
     // ==================== EXPRESSION PARSER ====================
 
     function parseItemStats(item) {
@@ -824,7 +819,6 @@
                     }
                 }
 
-                console.log('[Sortownik] Loaded', map.size, 'stats from MargoTipsParser.configSections');
             } catch(e) {
                 console.error('[Sortownik] Error loading from configSections:', e);
             }
@@ -2740,7 +2734,6 @@ label,
             e.stopPropagation();
             settings.panelOpacity = (settings.panelOpacity % 5) + 1; // Cykl 1-5
             save(KEYS.settings, settings);
-            console.log('[Sortownik] Opacity changed to:', settings.panelOpacity);
             updatePanelOpacity();
         });
 
@@ -2816,7 +2809,7 @@ label,
             // Pokaż/ukryj przycisk X
             clearButton.style.display = searchValue ? 'block' : 'none';
         });
-
+        
         // Przycisk X do czyszczenia wyszukiwarki
         const clearButton = document.createElement('span');
         clearButton.className = 'sort-search-clear';
@@ -2829,7 +2822,7 @@ label,
             clearButton.style.display = 'none';
             refreshItems();
         });
-
+        
         const bagSlots = document.createElement('span');
         bagSlots.className = 'sort-bag-slots';
         bagSlots.id = 'sort-bag-slots';
@@ -3424,10 +3417,8 @@ label,
 
             // Drag & drop dla wszystkich filtrów (włącznie z "Wszystko")
             tab.draggable = true;
-            console.log('[Sortownik] Created tab for filter:', f.id, f.name, 'draggable:', tab.draggable);
 
             tab.addEventListener('dragstart', (e) => {
-                console.log('[Sortownik] DRAGSTART - filterId:', f.id, 'name:', f.name);
                 draggedTab = tab;
                 draggedFilterId = f.id;
                 tab.style.opacity = '0.5';
@@ -3435,7 +3426,6 @@ label,
             });
 
             tab.addEventListener('dragend', (e) => {
-                console.log('[Sortownik] DRAGEND - filterId:', f.id);
                 tab.style.opacity = '';
                 draggedTab = null;
                 draggedFilterId = null;
@@ -3444,7 +3434,6 @@ label,
             tab.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                console.log('[Sortownik] DRAGOVER - currentTab:', f.id, 'draggedFilterId:', draggedFilterId);
                 if (draggedTab && draggedTab !== tab) {
                     const tabRect = tab.getBoundingClientRect();
                     const midpoint = tabRect.left + tabRect.width / 2;
@@ -3464,27 +3453,19 @@ label,
             });
 
             tab.addEventListener('drop', (e) => {
-                console.log('[Sortownik] DROP EVENT - targetId:', f.id, 'draggedFilterId:', draggedFilterId);
                 e.preventDefault();
                 tab.style.borderLeft = '';
                 tab.style.borderRight = '';
 
                 if (draggedFilterId === null || draggedFilterId === undefined || draggedFilterId === f.id) {
-                    console.log('[Sortownik] DROP CANCELLED - same filter or no draggedFilterId');
                     return;
                 }
-
-                console.log('[Sortownik] DROP - draggedFilterId:', draggedFilterId, 'targetId:', f.id);
-                console.log('[Sortownik] userFilters before:', userFilters.map(ff => ({ id: ff.id, name: ff.name })));
 
                 // Znajdź indeksy w userFilters
                 const draggedIndex = userFilters.findIndex(filter => filter.id === draggedFilterId);
                 const targetIndex = userFilters.findIndex(filter => filter.id === f.id);
 
-                console.log('[Sortownik] draggedIndex:', draggedIndex, 'targetIndex:', targetIndex);
-
                 if (draggedIndex === -1 || targetIndex === -1) {
-                    console.log('[Sortownik] BŁĄD: Nie znaleziono indeksu!');
                     return;
                 }
 
@@ -3498,7 +3479,6 @@ label,
 
                 userFilters.splice(newIndex > draggedIndex ? newIndex - 1 : newIndex, 0, draggedFilter);
 
-                console.log('[Sortownik] userFilters after:', userFilters.map(ff => ({ id: ff.id, name: ff.name })));
 
                 save(KEYS.filters, userFilters);
                     renderFilterTabs();
